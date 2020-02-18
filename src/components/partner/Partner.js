@@ -1,78 +1,63 @@
 import React, { Component } from 'react'
 import Axios from 'axios'
-import EditProductUI from './EditProductUI'
+import CustomerUI from '../customer/CustomerUI'
 import LoginModel from '../login-model/LoginModel'
 
 export default class View extends Component {
 
     state = {
+        allData:[],
         account: [],
         show: false,
-        pName: "",
-        company: "",
-        price: "",
-        quantity: "",
-        pImage: "",
-        category: "",
-        description: "",
+        customerId: '',
+        name: "",
+        email:"",
+        dateOfBirth:"",
+        mobile:'',
+        houseName:'',
+        state:'',
+        city:'',
+        country:'',
+        pin:'',
         conection: false,
-        priceError: false,
         nameError: false,
-        companyError: false,
-        imageError: false,
+        emailError: false,
+        mobileError: false,
+        dateOfBirthError: false,
         open: {
             open: false,
             message: ''
         },
         add: false
     }
-    componentDidMount() {
-        this.getAllAccount()
+    componentDidMount() {     
+       this.setState({
+        account:this.props.partner.partner.filter(value=>!value.status),
+        allData:this.props.partner
+       })
     }
 
+    delete = async (accToDelete) => {
 
-    getAllAccount = () => {
-
-        const url = 'http://192.168.43.253:8080/showproducts'
-        Axios.get(url).then(response => {
-            console.log("Response", response.data.products);
-
-            let newData = []
-            for (const key in response.data.products) {
-                console.log(response.data.products[key]);
-
-                newData.push({
-                    ...response.data.products[key],
-                    edit: false
+        const url = 'http://localhost:8080/partner/' + accToDelete.partnerId
+        try {
+            const response = await Axios.delete(url)
+            console.log("response", response);
+            if (response.status === 200) {
+                const myAccount = [...this.state.account]
+                const index = myAccount.indexOf(accToDelete)
+                myAccount.splice(index, 1)
+                this.setState({
+                    account: myAccount
                 })
             }
-            console.log(newData);
-            this.setState({
-                account: newData
-            })
 
-        }).catch(error => {
-            console.log(error);
-
-        })
-    }
-    async delete(accToDelete) {
-
-        const url = 'http://192.168.43.253:8080/deleteproduct'
-        try {
-            const response = await Axios.delete(url, accToDelete)
-            console.log("response", response);
-            const myAccount = [...this.state.account]
-            const index = myAccount.indexOf(accToDelete)
-            myAccount.splice(index, 1)
-            this.setState({
-                account: myAccount
-            })
         } catch (error) {
             console.log(error);
 
         }
     }
+   
 
     handelChange = (event) => {
         const value = event.target.value
@@ -86,35 +71,35 @@ export default class View extends Component {
     }
     validateData = (accToUpdates) => {
         let valid = true
-        const { pName, company, price, pImage } = accToUpdates
+        const { name, email, mobile, dateOfBirth } = accToUpdates
 
-        console.log(pName.trim().length);
+        console.log(name.trim().length);
 
-        if (pImage.trim().length === 0) {
+        if (dateOfBirth.trim().length === 0) {
             valid = false
             this.setState({
-                imageError: true,
+                dateOfBirthError: true,
                 show: false
             })
         } else {
             this.setState({
-                imageError: false,
+                dateOfBirthError: false,
 
             })
         }
-        if (company.trim().length === 0) {
+        if (email.trim().length === 0||!(/^\w+([/.-]?\w+)*@\w+([/.-]?\w+)*(\.\w{2,3})+$/.test(email))) {
             valid = false
             this.setState({
-                companyError: true,
+                emailError: true,
                 show: false
             })
         } else {
             this.setState({
-                companyError: false,
+                emailError: false,
 
             })
         }
-        if (pName.match(/[0-9]/) || pName.trim().length === 0) {
+        if (name.match(/[0-9]/) || name.trim().length === 0) {
             valid = false
             this.setState({
                 nameError: true,
@@ -126,15 +111,15 @@ export default class View extends Component {
 
             })
         }
-        if (price.toString().match(/[a-z]/) || price.toString().trim().length === 0) {
+        if (mobile.toString().match(/[a-z]/) || mobile.toString().trim().length === 0) {
             valid = false
             this.setState({
-                priceError: true,
+                mobileError: true,
                 show: false
             })
         } else {
             this.setState({
-                priceError: false,
+                mobileError: false,
 
             })
         }
@@ -142,21 +127,32 @@ export default class View extends Component {
         return valid
     }
     saveData = async (oldData, accToUpdates) => {
-        const { pName, company, price, pImage, pid, quantity, category, description } = accToUpdates
+        const {  name, email, mobile, dateOfBirth,houseName,state,city,country,pin} = accToUpdates
         const accToUpdate = {
-            pName, company, price, pImage, pid, quantity, category, description
+            partnerId:oldData.partnerId,
+            name: name,
+            email: email,
+            mobile: mobile,
+            dateOfBirth: dateOfBirth,
+            address:{
+                houseName:houseName,
+                state:state,
+                city:city,
+                country:country,
+                pin:pin
+            }
         }
-        console.log(accToUpdate);
+        console.log("jhj", accToUpdate);
         if (this.validateData(accToUpdates)) {
             accToUpdates.edit = false
             let data = this.state.account
             data[data.indexOf(oldData)] = accToUpdates;
-            console.log(data);
+            console.log("kjhj", data);
 
             try {
 
-                const url = 'http://192.168.43.253:8080/editproduct'
-                const response = await Axios.post(url, accToUpdate)
+                const url = 'http://localhost:8080/partner'
+                const response = await Axios.put(url, accToUpdate)
                 console.log(response);
                 console.log(this.state);
 
@@ -169,6 +165,11 @@ export default class View extends Component {
                         show: false
                     })
 
+                }else{
+                    this.setState({
+                        conection: true,
+                        show: false
+                    })
                 }
 
 
@@ -198,19 +199,20 @@ export default class View extends Component {
                 show: true,
                 conection: false
             })
-            const { pName, company, price, pImage, id, quantity, category, description } = this.state
+            const { name, email, mobile, dateOfBirth,houseName,state,city,country,pin,partnerId} = this.state
             const accToUpdate = {
-                pName, company, price, pImage, id, quantity, category, description
+                name, email, mobile, dateOfBirth,houseName,state,city,country,pin,partnerId
             }
             for (const key in accToUpdate) {
                 if (accToUpdate[key] !== '') {
                     newOldData[key] = accToUpdate[key]
                 }
             }
-
+          
             let newData = { ...newOldData }
 
             console.log(oldData);
+            console.log(newData);
 
 
             this.saveData(oldData, newData)
@@ -231,28 +233,51 @@ export default class View extends Component {
 
 
     }
-    addData = (value) => {
+    addData = async (value) => {
+        this.setState({
+            show: true,
+            conection: false
+        })
         if (value) {
-            const { pName, company, price, pImage, quantity, category, description } = this.state
+          
+            const { name, email, mobile, dateOfBirth,houseName,state,city,country,pin} = this.state
 
             const formData = {
-                pName: pName,
-                company: company,
-                price: price,
-                pImage: pImage,
-                quantity: quantity,
-                category: category,
-                description: description,
-                edit: false
+                name: name,
+                email: email,
+                mobile: mobile,
+                dateOfBirth: dateOfBirth,
+                address:{
+                    houseName:houseName,
+                    state:state,
+                    city:city,
+                    country:country,
+                    pin:pin
+                }
 
             }
+            const id=this.state.allData.partnerId
+
             let account = [...this.state.account]
             account.unshift(formData)
             if (this.validateData(formData)) {
-                this.setState({
-                    account: account,
-                    add: false
-                })
+                const response = await Axios.post("http://localhost:8080/partners/partner/"+id, formData)
+                console.log(response);
+                if(response.data.statusCode === 201){
+                    this.setState({
+                        account: account,
+                        add: false,
+                        conection: true,
+                        show: false
+                    })
+
+                }else{
+                    this.setState({
+                        add: false,
+                        conection: true,
+                        show: false
+                    })
+                }
             }
         } else {
             this.setState({
@@ -265,13 +290,27 @@ export default class View extends Component {
 
         this.setState({
             add: true
+           
         })
+    }
+    searchByName =async (event) => {
+       
+        event.preventDefault()
+       let name= event.target.value
+       console.log(name);
+       
+        const response =await Axios.get("http://localhost:8080/search?name=" + name)
+        console.log(response);
+        this.setState({
+            account:response.data.beans
+        })
+
     }
     render() {
         return (
             <div className="container  mt-5  ">
                 <div className="mt-5  ">
-                    <EditProductUI
+                    <CustomerUI
                         data={this.state.account}
                         delete={this.delete}
                         editOption={this.editOption}
@@ -282,16 +321,15 @@ export default class View extends Component {
                         addData={this.addData}
                         add={this.state.add}
                         isAdd={this.isAdd}
-
+                        searchByName={this.searchByName}
 
                     />
-                    {this.state.show ?
+                  
+                </div>
+                {this.state.show ?
                         <LoginModel action={"Added"} conection={this.state.conection} />
                         : null
                     }
-                </div>
-<br/>
-<br/>
             </div>
         )
     }
